@@ -1,0 +1,8 @@
+services:
+  prometheus_notice:
+    image: prometheus_notice
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./config.yaml:/app/config.yaml

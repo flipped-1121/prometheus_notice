@@ -1,0 +1,163 @@
+<!doctype html>
+<html>
+
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 80%;
+            margin-top: 20px;
+            margin-bottom: 40px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        td.warning {
+            background-color: #ffcccc;
+            color: #ff0000;
+        }
+
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        .header {
+            margin-bottom: 20px;
+        }
+
+        .brief {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+        }
+
+        .section {
+            margin-top: 30px;
+        }
+
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h2>机器巡检报告</h2>
+        <div class="brief">报告生成时间：{{ timestamp }}</div>
+        <div class="brief">报告由 SmartVision 运维团队提供支持</div>
+    </div>
+
+    <div class="section">
+        <h3>磁盘使用情况</h3>
+        <table>
+            <tr>
+                <th>节点</th>
+                <th>设备</th>
+                <th>挂载点</th>
+                <th>总容量</th>
+                <th>可用</th>
+                <th>已用</th>
+                <th>使用率</th>
+            </tr>
+            {% for disk in disks %}
+            <tr>
+                <td>{{ disk.instance }}</td>
+                <td>{{ disk.device }}</td>
+                <td>{{ disk.mount_point }}</td>
+                <td>{{ disk.size }}</td>
+                <td>{{ disk.used }}</td>
+                <td>{{ disk.free }}</td>
+                <td class="{{ 'warning' if disk.usage_percent > 85 else '' }}">
+                    {{ "%.2f"|format(disk.usage_percent) }} %
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <div class="section">
+        <h3>CPU使用情况</h3>
+        <table>
+            <tr>
+                <th>节点</th>
+                <th>CPU核心数</th>
+                <th>CPU使用率</th>
+            </tr>
+            {% for cpu in cpus %}
+            <tr>
+                <td>{{ cpu.instance }}</td>
+                <td>{{ cpu.core_num }}</td>
+                <td class="{{ 'warning' if cpu.usage_percent > 85 else '' }}">
+                    {{ "%.2f"|format(cpu.usage_percent) }} %
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <div class="section">
+        <h3>内存使用情况</h3>
+        <table>
+            <tr>
+                <th>节点</th>
+                <th>总内存</th>
+                <th>已用内存</th>
+                <th>使用率</th>
+            </tr>
+            {% for mem in mems %}
+            <tr>
+                <td>{{ mem.instance }}</td>
+                <td>{{ mem.total }}</td>
+                <td>{{ mem.used }}</td>
+                <td class="{{ 'warning' if mem.usage_percent > 85 else '' }}">
+                    {{ "%.2f"|format(mem.usage_percent) }} %
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <div class="section">
+        <h3>网络流量</h3>
+        <table>
+            <tr>
+                <th>节点</th>
+                <th>下载</th>
+                <th>上传</th>
+            </tr>
+            {% for net in nets %}
+            <tr>
+                <td>{{ net.instance }}</td>
+                <td>{{ net.download }}</td>
+                <td>{{ net.upload }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+    <div class="footer">
+        版权所有 © 2024，
+        <a href="https://www.xunsiya.com/">SmartVision</a>
+        保留所有权利
+    </div>
+</body>
+
+</html>
