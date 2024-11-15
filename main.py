@@ -85,8 +85,9 @@ class EmailSender:
 
     def _send_message(self, message: MIMEMultipart) -> bool:
         try:
-            with smtplib.SMTP(self.config.smtp_server, self.config.smtp_port) as server:
-                server.starttls()
+            # with smtplib.SMTP(self.config.smtp_server, self.config.smtp_port) as server:
+            with smtplib.SMTP_SSL(self.config.smtp_server) as server:
+                # server.starttls()
                 server.login(self.config.username, self.config.password)
                 server.sendmail(
                     self.config.username,
