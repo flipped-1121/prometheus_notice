@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-notice
+  namespace: monitor
+data:
+  config.yaml: |
+    email:
+      smtp_server: smtp 服务地址
+      smtp_port: smtp 服务端口
+      from_name: 发送者名称
+      username: 发送者邮箱
+      password: 发送者邮箱密码
+      # 收件人列表
+      recipients:
+        - example@email.com
+    prometheus:
+      # prometheus 地址
+      url: http://localhost:32290/api/v1/query
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: prometheus-notice
+  namespace: monitor
+  labels:
+    app: prometheus-notice
+spec:
+  schedule: "0 1 * * *"
+  # UTC 时间，转到北京时间是早晨 9 点。可以配置 timeZone 字段来指定时区，但是这个特性从 Kubernetes 1.24 开始才支持。
+  concurrencyPolicy: Replace
+  # Allow（默认）：CronJob 允许并发 Job 执行。
+  # Forbid：CronJob 不允许并发执行；如果新 Job 的执行时间到了而老 Job 没有执行完，CronJob 会忽略新 Job 的执行。 另请注意，当老 Job 执行完成时，仍然会考虑 .spec.startingDeadlineSeconds，可能会导致新的 Job 执行。
+  # Replace：如果新 Job 的执行时间到了而老 Job 没有执行完，CronJob 会用新 Job 替换当前正在运行的 Job。
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: prometheus-notice
+          annotations:
+            appName: prometheus-notice
+            appType: python
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: prometheus-notice
+              image: "192.168.142.99:7891/devops/prometheus-notice"
+              resources:
+                limits:
+                  memory: 10G
+                requests:
+                  memory: 200M
+
+              volumeMounts:
+                - name: prometheus-notice
+                  mountPath: /app/config.yaml
+                  subPath: config.yaml
+
+          volumes:
+            - name: prometheus-notice
+              configMap:
+                name: prometheus-notice
+                items:
+                  - key: config.yaml
+                    path: config.yaml
