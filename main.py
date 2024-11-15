@@ -141,34 +141,33 @@ class PrometheusMetrics:
             free_value = float(free["value"][1])
             used_value = size_value - free_value
             usage_percent = (used_value / size_value * 100) if size_value > 0 else 0
-            
+
             self.disk_list.append({
-                "device": size["metric"]["device"],
-                "usage_percent": usage_percent,
                 "instance": instance,
+                "device": size["metric"]["device"],
                 "mount_point": size["metric"]["mountpoint"],
                 "size": self._format_bytes(size_value),
+                "used": self._format_bytes(used_value),
                 "free": self._format_bytes(free_value),
-                "used": self._format_bytes(used_value)
+                "usage_percent": usage_percent,
             })
 
     def get_cpu_metrics(self, instance: str) -> None:
         """Get CPU metrics for a specific node"""
         query_usage_percent = f'(1 - avg(irate(node_cpu_seconds_total{{instance=~"{instance}",mode=~"idle"}}[3m])) by (instance)) * 100'
         query_core_num = f'count(node_cpu_seconds_total{{instance=~"{instance}",mode="system"}}) by (instance)'
-        
+
         result_usage_percent = self._query_prometheus(query_usage_percent)
         result_core_num = self._query_prometheus(query_core_num)
-        
+
         for usage_percent, core_num in zip(result_usage_percent["data"]["result"], result_core_num["data"]["result"]):
             usage_value = float(usage_percent["value"][1])
             core_num_value = float(core_num["value"][1])
             self.cpu_list.append({
                 "instance": instance,
-                "usage_percent": usage_value,
-                "core_num": core_num_value
+                "core_num": core_num_value,
+                "usage_percent": usage_value
             })
-
 
     def get_mem_metrics(self, instance: str) -> None:
         """Get memory metrics for a specific node"""
@@ -242,14 +241,25 @@ class PrometheusMetrics:
         cpu_df = pd.DataFrame(self.cpu_list) 
         mem_df = pd.DataFrame(self.mem_list)
         net_df = pd.DataFrame(self.net_list)
-        
+
+        # Format usage percentages with % symbol
+        disk_df['usage_percent'] = disk_df['usage_percent'].apply(lambda x: f'{x:.2f}%')
+        cpu_df['usage_percent'] = cpu_df['usage_percent'].apply(lambda x: f'{x:.2f}%')
+        mem_df['usage_percent'] = mem_df['usage_percent'].apply(lambda x: f'{x:.2f}%')
+
+        # translate table header to chinese
+        disk_df.rename(columns={'instance': '节点', 'device': '设备', 'mount_point': '挂载点', 'size': '总大小', 'free': '剩余', 'used': '已用', 'usage_percent': '使用率'}, inplace=True)
+        cpu_df.rename(columns={'instance': '节点', 'usage_percent': '使用率', 'core_num': '核心数'}, inplace=True)
+        mem_df.rename(columns={'instance': '节点', 'total': '总大小', 'used': '已用', 'usage_percent': '使用率'}, inplace=True)
+        net_df.rename(columns={'instance': '节点', 'download': '下载', 'upload': '上传'}, inplace=True)
+
         # Create Excel writer object
         with pd.ExcelWriter(file_path) as writer:
             # Write each DataFrame to a different sheet
-            disk_df.to_excel(writer, sheet_name='Disk Usage', index=False)
-            cpu_df.to_excel(writer, sheet_name='CPU Usage', index=False)
-            mem_df.to_excel(writer, sheet_name='Memory Usage', index=False)
-            net_df.to_excel(writer, sheet_name='Network Usage', index=False)
+            disk_df.to_excel(writer, sheet_name='磁盘', index=False)
+            cpu_df.to_excel(writer, sheet_name='CPU', index=False)
+            mem_df.to_excel(writer, sheet_name='内存', index=False)
+            net_df.to_excel(writer, sheet_name='网络', index=False)
             
         logger.info(f"Excel report generated successfully at {file_path}")
         
